@@ -118,13 +118,13 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['message'], "unprocessable")
 
 
-    """  def test_delete_question(self):
-        response = self.client().delete('/questions/20')
+    def test_delete_question(self):
+        response = self.client().delete('/questions/24')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True) 
-    """
+   
         
 
     def test_404_if_question_not_found_on_delete(self):
@@ -137,8 +137,8 @@ class TriviaTestCase(unittest.TestCase):
 
 
     def test_play_quiz(self):
-        new_quiz_round = {'previous_questions': [],
-                          'quiz_category': {'type': 'Entertainment', 'id': 5}}
+        new_quiz_round = {'previous_questions': [1, 4, 20, 15],
+                          'quiz_category': "Entertainment"}
 
         res = self.client().post('/quizzes', json=new_quiz_round)
         data = json.loads(res.data)

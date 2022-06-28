@@ -1,4 +1,5 @@
 import os
+from unicodedata import category
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -53,11 +54,13 @@ def create_app(test_config=None):
 
         try:
             categories = Category.query.all()
-            formatted_categories = [category.format() for category in categories]
-
+            formatted_categories = {
+                    category.id:category.type  for category in categories
+                }
+       
             return jsonify({
                 "success":True,
-                "categories": formatted_categories
+                "categories":formatted_categories
             })
         except:
             abort(404);
@@ -80,14 +83,16 @@ def create_app(test_config=None):
             questions = Question.query.all()
             current_questions = paginate_questions(request,questions)            
             categories = Category.query.all()
-            formatted_categories = [category.format() for category in categories]
+            formatted_categories = {
+                    category.id:category.type  for category in categories
+                }
 
             return jsonify({
                 "success":True,
                 "questions":current_questions,
                 "total_questions":len(questions),
-                "categories": formatted_categories
-
+                "categories": formatted_categories,
+                "current_category":""
             })
         except:
             abort(404);
@@ -227,62 +232,46 @@ def create_app(test_config=None):
     and shown whether they were correct or not.
     """
     @app.route('/quizzes', methods=['POST'])
-    def get_random_quiz_question():
-        
+    def generate_quizzes():
+
+      #try:
         body = request.get_json()
 
-        # get the previous questions
-        previous = body.get('previous_questions')
-
-        # get the category
-        category = body.get('quiz_category')
-
-        # abort 400 if category or previous questions isn't found
-        if ((category is None) or (previous is None)):
+        previous_questions = body.get('previous_questions')
+        quiz_category = body.get('quiz_category')
+      
+        
+        
+      
+        print(previous_questions)
+        if previous_questions is None or quiz_category is None:
             abort(422)
 
-        # load questions all questions if "ALL" is selected
-        if (category['id'] == 0):
-            questions = Question.query.all()
-        # load questions for given category
-        else:
-            questions = Question.query.filter_by(category=category['id']).all()
+        #if the category i
+        questions = Question.query.all() if quiz_category['id'] == 0  else Question.query.filter(Question.category == quiz_category['id']).all()
 
-        # get total number of questions
-        total = len(questions)
+        #generate random question
+        
+        random_question = questions[random.randrange(0,len(questions),1)]
 
-        # picks a random question
-        def get_random_question():
-            return questions[random.randrange(0, len(questions), 1)]
+        #if random_question is used generate another        
+        while(random_question.id  in previous_questions) :
+            random_question = questions[random.randrange(0,len(questions),1)]
 
-        # checks to see if question has already been used
-        def check_if_used(question):
-            used = False
-            for q in previous:
-                if (q == question.id):
-                    used = True
-
-            return used
-
-        # get random question
-        question = get_random_question()
-
-        # check if used, execute until unused question found
-        while (check_if_used(question)):
-            question = get_random_question()
-
-            # if all questions have been tried, return without question
-            # necessary if category has <5 questions
-        if (len(previous) == total):
+        #if all questions in category are used return no questions
+        if len(previous_questions) == len(questions):
             return jsonify({
-                    'success': True
-                })
+                "success": True,
+            })
+        else:
+            return jsonify({
+            "success": True,
+            "question": random_question.format()
 
-        # return the question
-        return jsonify({
-            'success': True,
-            'question': question.format()
-        })
+        })          
+      #except:
+          #abort(422)
+
     """
     @TODO:
     Create error handlers for all expected errors
